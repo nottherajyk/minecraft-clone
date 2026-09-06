@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Minecraft Web Edition</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+<canvas id="crosshair" width="30" height="30"></canvas>
+<canvas id="gui"></canvas>
+<script src="js/lib/three.min.js"></script>
+<script src="js/core/util.js"></script>
+<script src="js/core/noise.js"></script>
+<script src="js/world/blocks.js"></script>
+<script src="js/world/biomes.js"></script>
+<script src="js/gfx/texgen.js"></script>
+<script src="js/core/font.js"></script>
+<script src="js/gfx/sprites.js"></script>
+<script src="js/gfx/items.js"></script>
+<script src="js/core/audio.js"></script>
+<script src="js/core/input.js"></script>
+<script src="js/gfx/shaders.js"></script>
+<script src="js/gfx/sky.js"></script>
+<script src="js/world/worker.js"></script>
+<script src="js/world/world.js"></script>
+<script src="js/entities/entity.js"></script>
+<script src="js/entities/player.js"></script>
+<script src="js/entities/mobs.js"></script>
+<script src="js/ui/gui.js"></script>
+<script src="js/ui/hud.js"></script>
+<script src="js/ui/chat.js"></script>
+<script src="js/ui/screens.js"></script>
+<script src="js/ui/inventory.js"></script>
+<script src="js/game.js"></script>
+<script>
+// Packaging guard: if the game files next to this page did not load (almost always because the
+// ZIP was opened without extracting it first), explain what to do instead of showing a blank page.
+(function () {
+  if (window.THREE) return;
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483647;background:#0b0f16;color:#fff;' +
+    'font:16px/1.55 "Segoe UI",Arial,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px';
+  d.innerHTML = '<div style="max-width:600px">' +
+    '<div style="font-size:30px;font-weight:700;margin-bottom:14px">Almost there!</div>' +
+    '<p style="margin:0 0 12px">The game files that belong next to this page could not be loaded. ' +
+    'That usually means the ZIP was opened without being extracted first.</p>' +
+    '<p style="margin:0 0 12px"><b>Fix:</b> right-click the ZIP file and choose <b>Extract All&hellip;</b> ' +
+    '(on a Mac, double-click the ZIP), then open <b>Minecraft.html</b> inside the extracted folder.</p>' +
+    '<p style="margin:0;opacity:.7">Chrome or Edge recommended.</p></div>';
+  document.body.appendChild(d);
+})();
+</script>
+</body>
+</html>
