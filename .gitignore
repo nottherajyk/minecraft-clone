@@ -1,0 +1,11 @@
+# Scratch directory
+scratch/
+
+# Vercel & IDE files
+.vercel
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

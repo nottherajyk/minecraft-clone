@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/Minecraft",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/Minecraft.html",
+      "destination": "/index.html"
+    }
+  ]
+}
