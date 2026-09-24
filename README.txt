@@ -26,6 +26,22 @@ Fly (creative) ......................... double-tap Space
 Pause .................................. Esc
 
 
+TOUCH & MOBILE CONTROLS (Phones & Tablets)
+------------------------------------------
+
+Movement ............................... On-screen D-Pad (supports sliding & diagonals)
+Camera / Look .......................... Swipe anywhere on the screen
+Jump ................................... Jump button (or D-Pad center button)
+Sprint / Sneak ......................... Toggle buttons (⚡ / 🧎) or double-tap forward
+Mine / Attack .......................... MINE button (hold to mine, tap to attack)
+Place / Use ............................ PLACE button (tap to place block / eat / interact)
+Hotbar ................................. Tap any hotbar slot at bottom
+Inventory .............................. Top-right Backpack icon (🎒)
+Chat / Commands ........................ Top-right Chat icon (💬, opens mobile keyboard)
+Camera view ............................ Top-right Eye icon (👁️) to toggle perspective
+Pause .................................. Top-right Pause icon (⏸️)
+
+
 WHAT IS IN THE GAME
 -------------------
 

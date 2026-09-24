@@ -1,9 +1,12 @@
 // Keyboard / mouse / pointer-lock input. Exposes injectMouse for the headless harness.
+// Extended with pressKey/releaseKey + simulateLock for touch-screen support.
 (function () {
   var keys = {}, pressed = {}, released = {};
   var mouse = { x: 0, y: 0, dx: 0, dy: 0, buttons: 0, wheel: 0, clicks: [], locked: false, moved: false };
   var textTarget = null; // callback receiving typed characters when a text field is focused
   var canvas = null;
+  var simulateLock = false; // when true, 'locked' getter returns true even without pointer lock (touch mode)
+  var touchActive = false;
   var BIND = {
     forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', sneak: 'ShiftLeft', sprint: 'ControlLeft',
     inventory: 'KeyE', drop: 'KeyQ', chat: 'KeyT', command: 'Slash', debug: 'F3', hideGui: 'F1', perspective: 'F5', fullscreen: 'F11', swapHands: 'KeyF', pickBlock: 'MouseMiddle'
@@ -27,34 +30,68 @@
     window.addEventListener('keyup', function (e) { keys[e.code] = false; released[e.code] = true; });
     window.addEventListener('blur', function () { for (var k in keys) keys[k] = false; mouse.buttons = 0; });
     document.addEventListener('mousemove', function (e) {
+      if (touchActive) return;
       if (mouse.locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; }
       var r = canvas.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; mouse.moved = true;
     });
     document.addEventListener('mousedown', function (e) {
+      if (touchActive) return;
       mouse.buttons |= (1 << e.button);
       var r = canvas.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top;
       mouse.clicks.push({ button: e.button, x: mouse.x, y: mouse.y, down: true });
       if (e.button === 1) e.preventDefault();
     });
-    document.addEventListener('mouseup', function (e) { mouse.buttons &= ~(1 << e.button); mouse.clicks.push({ button: e.button, x: mouse.x, y: mouse.y, down: false }); });
+    document.addEventListener('mouseup', function (e) {
+      if (touchActive) return;
+      mouse.buttons &= ~(1 << e.button);
+      mouse.clicks.push({ button: e.button, x: mouse.x, y: mouse.y, down: false });
+    });
     document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     document.addEventListener('wheel', function (e) { mouse.wheel += e.deltaY > 0 ? 1 : (e.deltaY < 0 ? -1 : 0); if (mouse.locked) e.preventDefault(); }, { passive: false });
-    document.addEventListener('pointerlockchange', function () { mouse.locked = document.pointerLockElement === canvas; if (!mouse.locked) MC.Input.onUnlock && MC.Input.onUnlock(); });
+    document.addEventListener('pointerlockchange', function () { mouse.locked = document.pointerLockElement === canvas; if (!mouse.locked && !simulateLock) MC.Input.onUnlock && MC.Input.onUnlock(); });
     document.addEventListener('pointerlockerror', function () { mouse.locked = false; });
   }
   function lock() {
+    // In touch mode, just set simulateLock — no real pointer lock needed
+    if (touchActive) { simulateLock = true; return; }
     if (!canvas || mouse.locked) return;
     try {
       var p = canvas.requestPointerLock({ unadjustedMovement: true });
       if (p && p.catch) p.catch(function () { try { var q = canvas.requestPointerLock(); if (q && q.catch) q.catch(function () { }); } catch (e) { } });
     } catch (e) { try { var q2 = canvas.requestPointerLock(); if (q2 && q2.catch) q2.catch(function () { }); } catch (e2) { } }
   }
-  function unlock() { if (document.exitPointerLock && mouse.locked) document.exitPointerLock(); }
+  function unlock() {
+    if (touchActive) { simulateLock = false; return; }
+    if (document.exitPointerLock && mouse.locked) document.exitPointerLock();
+  }
   function down(action) { var code = BIND[action] || action; return !!keys[code]; }
   function wasPressed(action) { var code = BIND[action] || action; return !!pressed[code]; }
   function endFrame() { pressed = {}; released = {}; mouse.dx = 0; mouse.dy = 0; mouse.wheel = 0; mouse.clicks.length = 0; mouse.moved = false; }
   function injectMouse(dx, dy) { mouse.dx += dx; mouse.dy += dy; }
   function setTextTarget(fn) { textTarget = fn; }
-  MC.Input = { init: init, lock: lock, unlock: unlock, down: down, pressed: wasPressed, keys: keys, mouse: mouse, endFrame: endFrame, injectMouse: injectMouse, setTextTarget: setTextTarget, BIND: BIND, onUnlock: null,
-    get locked() { return mouse.locked; }, simulateLock: false };
+
+  // Touch-injected key simulation: maps action names to key codes and sets them
+  function pressKey(action) {
+    var code = BIND[action] || action;
+    if (!keys[code]) pressed[code] = true;
+    keys[code] = true;
+  }
+  function releaseKey(action) {
+    var code = BIND[action] || action;
+    keys[code] = false;
+    released[code] = true;
+  }
+
+  MC.Input = {
+    init: init, lock: lock, unlock: unlock, down: down, pressed: wasPressed,
+    keys: keys, mouse: mouse, endFrame: endFrame, injectMouse: injectMouse,
+    setTextTarget: setTextTarget, BIND: BIND, onUnlock: null,
+    pressKey: pressKey, releaseKey: releaseKey,
+    get textTarget() { return textTarget; },
+    get locked() { return mouse.locked || simulateLock; },
+    get simulateLock() { return simulateLock; },
+    set simulateLock(v) { simulateLock = !!v; },
+    get touchActive() { return touchActive; },
+    set touchActive(v) { touchActive = !!v; }
+  };
 })();

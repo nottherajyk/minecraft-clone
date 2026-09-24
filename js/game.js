@@ -22,7 +22,7 @@
     this.texArray = MC.Tex.makeArrayTexture();
     MC.IconRenderer.init(this.texArray);
     MC.Gui.init(this.guiCanvas); MC.Input.init(this.canvas);
-    MC.Input.onUnlock = function () { if (self.state === 'playing' && !self.screen && !self.chat.open) self.openScreen(new MC.Screens.PauseScreen(self)); };
+    MC.Input.onUnlock = function () { if (MC.Input.touchActive) return; if (self.state === 'playing' && !self.screen && !self.chat.open) self.openScreen(new MC.Screens.PauseScreen(self)); };
     this.camera = new THREE.PerspectiveCamera(70, 1, 0.05, 1000);
     this.handCamera = new THREE.PerspectiveCamera(70, 1, 0.01, 10);
     this.chat = new MC.Chat(this);
@@ -30,6 +30,7 @@
     document.addEventListener('visibilitychange', function () { if (document.hidden && self.state === 'playing') self.saveWorld(); });
     window.addEventListener('beforeunload', function () { if (self.state === 'playing') self.saveWorld(); });
     document.addEventListener('mousedown', function () { MC.Audio.init(); MC.Audio.resume(); if (self.state === 'title' && !self.musicStarted) { self.musicStarted = true; MC.Audio.setMusicMode('menu'); } }, { once: false });
+    document.addEventListener('touchstart', function () { MC.Audio.init(); MC.Audio.resume(); if (self.state === 'title' && !self.musicStarted) { self.musicStarted = true; MC.Audio.setMusicMode('menu'); } }, { once: false });
     this.resize();
     this.buildHandScene();
     this.setupPanorama();
@@ -67,14 +68,16 @@
   // ---------------- screens ----------------
   Game.prototype.openScreen = function (s) {
     if (this.screen && this.screen !== s) this.screen.onClose();
-    this.screen = s; if (s) { s.onOpen(); MC.Input.unlock(); this.crosshair.style.display = 'none'; }
+    this.screen = s; if (s) { s.onOpen(); if (!MC.Input.touchActive) MC.Input.unlock(); this.crosshair.style.display = 'none'; }
+    if (MC.TouchControls) MC.TouchControls.update();
   };
   Game.prototype.closeScreen = function () {
     if (this.screen) this.screen.onClose(); this.screen = null;
-    if (this.state === 'playing') { MC.Input.lock(); this.crosshair.style.display = MC.Hud.hidden ? 'none' : 'block'; }
+    if (this.state === 'playing') { MC.Input.lock(); this.crosshair.style.display = MC.Input.touchActive ? 'none' : (MC.Hud.hidden ? 'none' : 'block'); }
+    if (MC.TouchControls) MC.TouchControls.update();
   };
   Game.prototype.drawScreenBackground = function () { if (this.state === 'playing') MC.Gui.drawDim(); else MC.Gui.drawBackground(); };
-  Game.prototype.onChatClosed = function () { if (this.state === 'playing' && !this.screen) { MC.Input.lock(); this.player.controlsEnabled = true; } };
+  Game.prototype.onChatClosed = function () { if (this.state === 'playing' && !this.screen) { MC.Input.lock(); this.player.controlsEnabled = true; } if (MC.TouchControls) MC.TouchControls.blurKb(); };
 
   // ---------------- panorama (title background) ----------------
   Game.prototype.setupPanorama = function () {
@@ -194,9 +197,13 @@
     else { var sp = this.world.findSpawn(); this.player.pos.copy(sp); this.player.prevPos.copy(sp); this.player.spawn.copy(sp); MC.Mobs.seedSalt = this.worldInfo.seedInt; MC.Mobs.initialSpawn(sp, 10); }
     this.state = 'playing'; this.closeScreen();
     MC.Audio.setMusicMode('game');
-    if (!data) this.chat.add('§7Welcome to ' + this.worldInfo.name + '! Press §fE§7 for inventory, §fT§7 to chat, §f/help§7 for commands.');
+    if (!data) {
+      if (MC.Input.touchActive) this.chat.add('§7Welcome! Use the on-screen controls to play.');
+      else this.chat.add('§7Welcome to ' + this.worldInfo.name + '! Press §fE§7 for inventory, §fT§7 to chat, §f/help§7 for commands.');
+    }
     this.player.controlsEnabled = true;
     setTimeout(function () { if (self.state === 'playing' && !self.screen) MC.Input.lock(); }, 50);
+    if (MC.TouchControls) MC.TouchControls.update();
   };
 
   // ---------------- world events ----------------
@@ -407,8 +414,9 @@
       else if (input.pressed('inventory')) { this.openScreen(p.isCreative() ? new MC.Inventory.Screens.CreativeScreen(this, this.lastCreativeTab || 2) : new MC.Inventory.Screens.InventoryScreen(this)); }
       else if (input.pressed('chat')) { this.chat.openChat(''); MC.Input.unlock(); }
       else if (input.pressed('command')) { this.chat.openChat('/'); MC.Input.unlock(); }
-      else if (!input.locked && input.mouse.clicks.some(function (c) { return c.down; })) { MC.Input.lock(); }
+      else if (!MC.Input.touchActive && !input.locked && input.mouse.clicks.some(function (c) { return c.down; })) { MC.Input.lock(); }
     }
+    if (MC.TouchControls) MC.TouchControls.update();
     if (this.screen && this.screen.constructor === MC.Inventory.Screens.CreativeScreen) this.lastCreativeTab = this.screen.tab;
     if (!paused) {
       var sens = O.sensitivity; if (O.invertMouse) input.mouse.dy = -input.mouse.dy;
@@ -509,9 +517,9 @@
     MC.Hud.render(this);
     this.chat.render();
     if (this.screen) this.screen.render();
-    this.crosshair.style.display = (this.screen || MC.Hud.hidden || this.chat.open) ? 'none' : 'block';
+    this.crosshair.style.display = (MC.Input.touchActive || this.screen || MC.Hud.hidden || this.chat.open) ? 'none' : 'block';
   };
 
   MC.Game = Game;
-  window.addEventListener('load', function () { MC.game = new Game(); MC.game.init(); });
+  window.addEventListener('load', function () { MC.game = new Game(); MC.game.init(); window.gameInstance = MC.game; });
 })();
