@@ -21,6 +21,51 @@
     this.button(x + 102, y2, 98, 20, 'Quit Game', function () { self.game.quit(); });
     var acc = this.button(x + 204, y2, 20, 20, '', function () { self.game.openScreen(new AccessibilityScreen(self.game, self)); }); acc.icon = MC.Sprites.s.icon_accessibility;
   };
+  TitleScreen.prototype.onOpen = function () {
+    Screen.prototype.onOpen.call(this);
+    this.updateGithubLink();
+  };
+  TitleScreen.prototype.onClose = function () {
+    Screen.prototype.onClose.call(this);
+    var el = document.getElementById('mc-github-credit');
+    if (el) el.style.display = 'none';
+    document.body.style.cursor = 'default';
+  };
+  TitleScreen.prototype.updateGithubLink = function () {
+    var el = document.getElementById('mc-github-credit');
+    if (!el) {
+      el = document.createElement('a');
+      el.id = 'mc-github-credit';
+      el.href = 'https://github.com/nottherajyk';
+      el.target = '_blank';
+      el.rel = 'noopener noreferrer';
+      el.title = 'Open GitHub Profile (@nottherajyk)';
+      el.style.cssText = 'position:fixed;left:0;bottom:0;z-index:1000;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+      var self = this;
+      el.addEventListener('click', function () { MC.Audio.play('ui.click'); });
+      el.addEventListener('mouseenter', function () { self.githubHover = true; });
+      el.addEventListener('mouseleave', function () { self.githubHover = false; });
+      document.body.appendChild(el);
+    }
+    var g = MC.Gui;
+    var S = g.S || 2;
+    var creditText = '@nottherajyk';
+    var creditW = MC.Font.width ? MC.Font.width(creditText) : 75;
+    el.style.width = Math.ceil((17 + creditW + 8) * S) + 'px';
+    el.style.height = Math.ceil(18 * S) + 'px';
+    el.style.display = 'block';
+  };
+  TitleScreen.prototype.mouseDown = function (x, y, button) {
+    var g = MC.Gui, H = g.H;
+    var creditText = '@nottherajyk';
+    var creditW = MC.Font.width ? MC.Font.width(creditText) : 75;
+    if (button === 0 && x >= 0 && x <= 17 + creditW + 8 && y >= H - 18 && y <= H) {
+      MC.Audio.play('ui.click');
+      window.open('https://github.com/nottherajyk', '_blank', 'noopener,noreferrer');
+      return true;
+    }
+    return Screen.prototype.mouseDown.call(this, x, y, button);
+  };
   TitleScreen.prototype.tick = function (dt) { Screen.prototype.tick.call(this, dt); this.t += dt; };
   TitleScreen.prototype.render = function () {
     var g = MC.Gui, c = g.ctx, W = g.W, H = g.H, S = MC.Sprites.s;
@@ -34,9 +79,20 @@
     // realms icons on the realms button
     for (var i = 0; i < this.widgets.length; i++) { var w = this.widgets[i]; if (w.realms) { c.drawImage(S.icon_realms_notify, w.x + w.w - 40, w.y + 5); c.drawImage(S.icon_realms, w.x + w.w - 26, w.y + 4); } }
     // Creator credit in the bottom-left, using the bundled SVG GitHub mark.
+    this.updateGithubLink();
+    var creditText = '@nottherajyk';
+    var creditW = MC.Font.width(creditText);
+    var isHover = this.githubHover || (g.mx >= 0 && g.mx <= 17 + creditW + 8 && g.my >= H - 18 && g.my <= H);
     if (!MC.githubLogo) { MC.githubLogo = new Image(); MC.githubLogo.src = 'assets/github.svg'; }
     if (MC.githubLogo.complete) c.drawImage(MC.githubLogo, 2, H - 13, 12, 12);
-    g.text('@notterajyk', 17, H - 10, '#ffffff', true);
+    g.text(creditText, 17, H - 10, isHover ? '#ffffa0' : '#ffffff', true);
+    if (isHover) {
+      c.fillStyle = '#ffffa0';
+      c.fillRect(17, H - 2, creditW, 1);
+      document.body.style.cursor = 'pointer';
+    } else if (!this.widgets.some(function (w) { return w.visible && g.hover(w.x, w.y, w.w, w.h); })) {
+      document.body.style.cursor = 'default';
+    }
     var copy = 'Fan recreation. Not affiliated with Mojang AB.'; g.text(copy, W - MC.Font.width(copy) - 2, H - 10, '#ffffff', true);
   };
 
