@@ -87,7 +87,12 @@
     var ctrl = this.controlsEnabled && input.locked;
     var fwd = 0, strafe = 0, jump = false, sneak = false;
     if (ctrl) {
-      if (input.down('forward')) fwd += 1; if (input.down('back')) fwd -= 1; if (input.down('left')) strafe += 1; if (input.down('right')) strafe -= 1;
+      if (input.moveStick && input.moveStick.active) {
+        fwd = input.moveStick.fwd;
+        strafe = input.moveStick.strafe;
+      } else {
+        if (input.down('forward')) fwd += 1; if (input.down('back')) fwd -= 1; if (input.down('left')) strafe += 1; if (input.down('right')) strafe -= 1;
+      }
       jump = input.down('jump'); sneak = input.down('sneak');
       if (fwd <= 0 || this.collidedH || sneak || (this.hunger <= 6 && !this.isCreative())) this.sprintToggle = false; // MC: releasing W, hitting a wall, sneaking or low hunger ends a double-tap sprint
       var wantSprint = (input.down('sprint') || this.sprintToggle) && fwd > 0 && (this.hunger > 6 || this.isCreative()) && !sneak;
@@ -250,10 +255,10 @@
   // ---- interaction (per frame) ----
   Player.prototype.updateInteraction = function (dt, input) {
     var world = this.world; var eye = this.getEyePos(1); var dir = this.getLookDir();
-    var hit = world.raycast(eye, dir, this.reach, false);
+    var hit = this.touchTarget || world.raycast(eye, dir, this.reach, false);
     this.target = hit;
     // entity target (mobs)
-    this.targetMob = MC.Mobs ? MC.Mobs.pick(eye, dir, hit ? hit.dist : 3.2) : null;
+    this.targetMob = this.touchTargetMob || (MC.Mobs ? MC.Mobs.pick(eye, dir, hit ? hit.dist : 3.2) : null);
     if (!this.controlsEnabled || !input.locked) { this.mining.progress = 0; this.mining.target = null; this.eating = 0; return; }
     var m = input.mouse; var left = (m.buttons & 1) !== 0, right = (m.buttons & 4) !== 0, middle = (m.buttons & 2) !== 0;
     var held = this.held();

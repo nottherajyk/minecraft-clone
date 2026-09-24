@@ -26,20 +26,21 @@ Fly (creative) ......................... double-tap Space
 Pause .................................. Esc
 
 
-TOUCH & MOBILE CONTROLS (Phones & Tablets)
-------------------------------------------
+TOUCH & MOBILE CONTROLS (Minecraft Bedrock Edition Layout)
+---------------------------------------------------------
 
-Movement ............................... On-screen D-Pad (supports sliding & diagonals)
-Camera / Look .......................... Swipe anywhere on the screen
-Jump ................................... Jump button (or D-Pad center button)
-Sprint / Sneak ......................... Toggle buttons (⚡ / 🧎) or double-tap forward
-Mine / Attack .......................... MINE button (hold to mine, tap to attack)
-Place / Use ............................ PLACE button (tap to place block / eat / interact)
-Hotbar ................................. Tap any hotbar slot at bottom
-Inventory .............................. Top-right Backpack icon (🎒)
-Chat / Commands ........................ Top-right Chat icon (💬, opens mobile keyboard)
-Camera view ............................ Top-right Eye icon (👁️) to toggle perspective
-Pause .................................. Top-right Pause icon (⏸️)
+Move ..................................... Virtual analog joystick (bottom-left)
+Look Around .............................. Drag anywhere on screen
+Attack ................................... Tap mob directly on screen
+Place / Use / Interact ................... Tap block directly on screen (doors, chests, beds, etc.)
+Mine ..................................... Tap & hold block on screen (progressive crack animation)
+Jump / Fly ............................... Jump button (▲, double-tap in creative to toggle flight)
+Sprint / Sneak ........................... Toggle buttons (⏩ / ▼) on right
+Hotbar Selection ......................... Tap any hotbar slot at bottom
+Open Inventory / Crafting ................ "•••" button attached to the right of hotbar
+Perspective / Camera ..................... Top-center 👤 button (toggles 1st/3rd person)
+Chat / Commands .......................... Top-center 💬 button (opens virtual keyboard)
+Pause / Menu ............................. Top-center ⏸️ button
 
 
 WHAT IS IN THE GAME

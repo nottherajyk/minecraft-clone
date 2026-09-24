@@ -416,7 +416,7 @@
       else if (input.pressed('command')) { this.chat.openChat('/'); MC.Input.unlock(); }
       else if (!MC.Input.touchActive && !input.locked && input.mouse.clicks.some(function (c) { return c.down; })) { MC.Input.lock(); }
     }
-    if (MC.TouchControls) MC.TouchControls.update();
+    if (MC.TouchControls) MC.TouchControls.update(dt);
     if (this.screen && this.screen.constructor === MC.Inventory.Screens.CreativeScreen) this.lastCreativeTab = this.screen.tab;
     if (!paused) {
       var sens = O.sensitivity; if (O.invertMouse) input.mouse.dy = -input.mouse.dy;

@@ -51,11 +51,11 @@ canvas {
   display: none;
 }
 
-/* Touch Overlay Styling */
+/* Touch Controls - Modern Bedrock Edition Layout */
 .touch-btn {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.35);
   border: 2px solid rgba(255, 255, 255, 0.45);
-  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   color: #ffffff;
@@ -78,107 +78,158 @@ canvas {
 .touch-btn:active, .touch-btn.active {
   background: rgba(255, 255, 255, 0.55);
   border-color: #80ff20;
-  transform: scale(0.94);
+  transform: scale(0.93);
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6), 0 0 12px rgba(128, 255, 32, 0.6);
+  color: #000;
 }
 
-.touch-btn-sm {
+/* Top Center Bar */
+.touch-topbar-center {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  pointer-events: auto;
+  z-index: 10001;
+}
+
+.touch-btn-sq {
   width: 44px;
   height: 44px;
   font-size: 20px;
   border-radius: 10px;
 }
 
-.touch-btn-mid {
-  width: 50px;
-  height: 50px;
-  font-size: 22px;
-  border-radius: 12px;
-}
-
-.touch-btn-lg {
-  width: 68px;
-  height: 68px;
-  font-size: 22px;
-  border-radius: 16px;
-}
-
-.touch-btn-mine {
-  background: rgba(220, 80, 50, 0.3);
-  border-color: rgba(255, 120, 90, 0.6);
-}
-
-.touch-btn-place {
-  background: rgba(50, 160, 220, 0.3);
-  border-color: rgba(90, 200, 255, 0.6);
-}
-
-.touch-btn-jump {
-  background: rgba(60, 200, 100, 0.3);
-  border-color: rgba(100, 240, 140, 0.6);
-}
-
-/* D-Pad Buttons */
-.dpad-btn {
+/* Bottom Left Joystick */
+.touch-joystick-zone {
   position: absolute;
-  width: 46px;
-  height: 46px;
-  font-size: 18px;
-  border-radius: 10px;
+  bottom: 24px;
+  left: 24px;
+  width: 136px;
+  height: 136px;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 10001;
 }
 
-.dpad-up {
-  top: 0;
-  left: 52px;
+.touch-joystick-base {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 28px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
-.dpad-down {
-  bottom: 0;
-  left: 52px;
-}
-
-.dpad-left {
-  top: 52px;
-  left: 0;
-}
-
-.dpad-right {
-  top: 52px;
-  right: 0;
-}
-
-.dpad-center {
-  top: 52px;
-  left: 52px;
+.touch-joystick-knob {
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  font-size: 16px;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.85), rgba(200, 200, 200, 0.45));
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  position: absolute;
+  left: calc(50% - 26px);
+  top: calc(50% - 26px);
+  pointer-events: none;
+  transition: transform 0.03s linear;
+}
+
+.touch-joystick-knob::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  top: calc(50% - 7px);
+  left: calc(50% - 7px);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Bottom Center Inventory Button (...) */
+.touch-btn-dots {
+  position: absolute;
+  z-index: 10001;
+  letter-spacing: -1px;
+  font-size: 22px;
+  font-weight: 900;
+  border-radius: 8px;
+  pointer-events: auto;
+  line-height: 1;
+}
+
+/* Right Side Action Cluster */
+.touch-action-cluster {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  width: 136px;
+  height: 136px;
+  pointer-events: auto;
+  z-index: 10001;
+}
+
+.touch-btn-action {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  font-size: 24px;
+  border-radius: 14px;
+}
+
+.touch-jump {
+  top: 0;
+  right: 4px;
+}
+
+.touch-sneak {
+  bottom: 0;
+  right: 4px;
+}
+
+.touch-sprint {
+  top: 42px;
+  left: 4px;
 }
 
 @media (max-height: 500px) {
-  .touch-dpad-container {
-    width: 130px !important;
-    height: 130px !important;
-    bottom: 10px !important;
-    left: 10px !important;
+  .touch-joystick-zone {
+    width: 114px !important;
+    height: 114px !important;
+    bottom: 12px !important;
+    left: 12px !important;
   }
-  .dpad-btn {
-    width: 40px !important;
-    height: 40px !important;
+  .touch-joystick-knob {
+    width: 44px !important;
+    height: 44px !important;
+    left: calc(50% - 22px) !important;
+    top: calc(50% - 22px) !important;
   }
-  .dpad-up { left: 45px !important; }
-  .dpad-down { left: 45px !important; }
-  .dpad-left { top: 45px !important; }
-  .dpad-right { top: 45px !important; }
-  .dpad-center { top: 45px !important; left: 45px !important; }
-
-  .touch-btn-lg {
-    width: 56px !important;
-    height: 56px !important;
-    font-size: 18px !important;
+  .touch-action-cluster {
+    width: 114px !important;
+    height: 114px !important;
+    bottom: 12px !important;
+    right: 12px !important;
   }
-  .touch-btn-mid {
-    width: 42px !important;
-    height: 42px !important;
-    font-size: 18px !important;
+  .touch-btn-action {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 20px !important;
+  }
+  .touch-sprint {
+    top: 35px !important;
+  }
+  .touch-btn-sq {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 17px !important;
   }
 }

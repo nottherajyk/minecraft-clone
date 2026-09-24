@@ -1,15 +1,39 @@
 // Touch controls & Mobile input adapter for Minecraft Web Edition.
+// Implements the official modern Minecraft Bedrock Edition "Touch" control scheme:
+// - Move: Virtual analog joystick at bottom-left
+// - Tap anywhere on screen: Look around, Use/Place item, Attack mob, Interact with blocks, Hold to mine
+// - Top-center: Emote / Perspective (👤), Chat (💬), Pause menu (⏸️)
+// - Right side: Jump (▲), Sprint (⏩), Sneak (▼)
+// - Bottom-center: Hotbar slot selection + attached "..." Open Inventory/Craft button
 (function () {
   var touchActive = false;
   var enabled = true;
   var overlay = null;
   var kbInput = null;
-  var lookTouchId = null;
-  var lastLookX = 0, lastLookY = 0;
-  var sneakToggled = false;
-  var sprintToggled = false;
 
-  // Check touch capability
+  // Joystick state
+  var joystickTouchId = null;
+  var joystickBase = null;
+  var joystickKnob = null;
+  var joystickCenter = { x: 0, y: 0 };
+  var joystickMaxRadius = 42;
+
+  // Screen interaction state (look, tap, mine)
+  var screenTouchId = null;
+  var screenStartX = 0, screenStartY = 0;
+  var lastLookX = 0, lastLookY = 0;
+  var touchStartTime = 0;
+  var hasMoved = false;
+  var holdTimer = null;
+  var isMining = false;
+  var miningTarget = null;
+  var miningProgress = 0;
+  var miningSoundTimer = 0;
+
+  // Action toggles
+  var sprintToggled = false;
+  var sneakToggled = false;
+
   function isTouchDevice() {
     return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
   }
@@ -17,14 +41,12 @@
   function init() {
     createKbInput();
     createOverlay();
-    bindTouchListeners();
+    bindEvents();
 
-    // Auto-detect touch
     if (isTouchDevice()) {
       enableTouchMode();
     }
 
-    // Enable on first touch anywhere
     window.addEventListener('touchstart', function onFirstTouch() {
       enableTouchMode();
       window.removeEventListener('touchstart', onFirstTouch);
@@ -84,303 +106,293 @@
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;user-select:none;-webkit-user-select:none;display:none;';
 
     overlay.innerHTML = `
-      <!-- Top Bar -->
-      <div class="touch-topbar" style="position:absolute;top:10px;right:10px;display:flex;gap:10px;pointer-events:auto;">
-        <button id="tb-chat" class="touch-btn touch-btn-sm" title="Chat">💬</button>
-        <button id="tb-inv" class="touch-btn touch-btn-sm" title="Inventory">🎒</button>
-        <button id="tb-f5" class="touch-btn touch-btn-sm" title="Camera">👁️</button>
-        <button id="tb-pause" class="touch-btn touch-btn-sm" title="Pause">⏸️</button>
+      <!-- Top Center Bar: Emote/Camera, Chat, Pause Menu -->
+      <div class="touch-topbar-center">
+        <button id="tb-cam" class="touch-btn touch-btn-sq" title="Perspective (F5)">👤</button>
+        <button id="tb-chat" class="touch-btn touch-btn-sq" title="Chat">💬</button>
+        <button id="tb-pause" class="touch-btn touch-btn-sq" title="Menu / Pause">⏸️</button>
       </div>
 
-      <!-- D-Pad Left -->
-      <div class="touch-dpad-container" style="position:absolute;bottom:20px;left:20px;width:150px;height:150px;pointer-events:auto;">
-        <button id="dp-up" class="touch-btn dpad-btn dpad-up">▲</button>
-        <button id="dp-down" class="touch-btn dpad-btn dpad-down">▼</button>
-        <button id="dp-left" class="touch-btn dpad-btn dpad-left">◀</button>
-        <button id="dp-right" class="touch-btn dpad-btn dpad-right">▶</button>
-        <button id="dp-center" class="touch-btn dpad-btn dpad-center">🦘</button>
+      <!-- Bottom-Left Virtual Joystick (Move) -->
+      <div id="touch-joystick-zone" class="touch-joystick-zone">
+        <div id="touch-joystick-base" class="touch-joystick-base">
+          <div id="touch-joystick-knob" class="touch-joystick-knob"></div>
+        </div>
       </div>
 
-      <!-- Actions Right -->
-      <div class="touch-actions-container" style="position:absolute;bottom:20px;right:20px;display:flex;flex-direction:column;align-items:flex-end;gap:12px;pointer-events:auto;">
-        <div style="display:flex;gap:10px;">
-          <button id="btn-drop" class="touch-btn touch-btn-mid" title="Drop Item">🗑️</button>
-          <button id="btn-sprint" class="touch-btn touch-btn-mid" title="Sprint">⚡</button>
-          <button id="btn-sneak" class="touch-btn touch-btn-mid" title="Sneak">🧎</button>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;">
-          <button id="btn-place" class="touch-btn touch-btn-lg touch-btn-place" title="Place / Use">📦<br><span style="font-size:10px">PLACE</span></button>
-          <button id="btn-mine" class="touch-btn touch-btn-lg touch-btn-mine" title="Mine / Attack">⛏️<br><span style="font-size:10px">MINE</span></button>
-          <button id="btn-jump" class="touch-btn touch-btn-lg touch-btn-jump" title="Jump">⬆️<br><span style="font-size:10px">JUMP</span></button>
-        </div>
+      <!-- Bottom-Center Inventory button attached to hotbar -->
+      <button id="tb-inv" class="touch-btn touch-btn-dots" title="Open Inventory / Craft">•••</button>
+
+      <!-- Right Side Action Cluster: Jump, Sprint, Sneak -->
+      <div class="touch-action-cluster">
+        <button id="btn-jump" class="touch-btn touch-btn-action touch-jump" title="Jump">▲</button>
+        <button id="btn-sprint" class="touch-btn touch-btn-action touch-sprint" title="Sprint">⏩</button>
+        <button id="btn-sneak" class="touch-btn touch-btn-action touch-sneak" title="Sneak">▼</button>
       </div>
     `;
 
     document.body.appendChild(overlay);
-    bindButtonEvents();
+
+    joystickBase = document.getElementById('touch-joystick-base');
+    joystickKnob = document.getElementById('touch-joystick-knob');
   }
 
-  function bindButtonEvents() {
-    function bindKeyBtn(id, actionCode, isToggle) {
-      var btn = document.getElementById(id);
-      if (!btn) return;
-      var active = false;
+  function getScreenRayDir(camera, clientX, clientY) {
+    var ndcX = (clientX / window.innerWidth) * 2 - 1;
+    var ndcY = -(clientY / window.innerHeight) * 2 + 1;
+    var v = new THREE.Vector3(ndcX, ndcY, 0.5);
+    v.unproject(camera);
+    v.sub(camera.position).normalize();
+    return v;
+  }
 
-      function onDown(e) {
+  function bindEvents() {
+    bindJoystick();
+    bindActionButtons();
+    bindScreenTouch();
+  }
+
+  // ---------------- Joystick Handling ----------------
+  function bindJoystick() {
+    var zone = document.getElementById('touch-joystick-zone');
+    if (!zone) return;
+
+    function handleJoystickMove(clientX, clientY) {
+      if (!joystickBase) return;
+      var rect = joystickBase.getBoundingClientRect();
+      joystickCenter = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      };
+
+      var dx = clientX - joystickCenter.x;
+      var dy = clientY - joystickCenter.y;
+      var dist = Math.hypot(dx, dy);
+
+      var nx = 0, ny = 0;
+      if (dist > 0) {
+        nx = dx / dist;
+        ny = dy / dist;
+      }
+
+      var clampedDist = Math.min(dist, joystickMaxRadius);
+      var knobX = nx * clampedDist;
+      var knobY = ny * clampedDist;
+
+      if (joystickKnob) {
+        joystickKnob.style.transform = 'translate(' + knobX + 'px, ' + knobY + 'px)';
+      }
+
+      var fwd = -ny * (clampedDist / joystickMaxRadius);
+      var strafe = -nx * (clampedDist / joystickMaxRadius);
+
+      MC.Input.moveStick = {
+        active: dist > 8,
+        fwd: fwd,
+        strafe: strafe
+      };
+
+      // Set digital key states as fallback
+      MC.Input.keys['KeyW'] = fwd > 0.25;
+      MC.Input.keys['KeyS'] = fwd < -0.25;
+      MC.Input.keys['KeyA'] = strafe > 0.25;
+      MC.Input.keys['KeyD'] = strafe < -0.25;
+    }
+
+    function resetJoystick() {
+      joystickTouchId = null;
+      if (joystickKnob) {
+        joystickKnob.style.transform = 'translate(0px, 0px)';
+      }
+      MC.Input.moveStick = { active: false, fwd: 0, strafe: 0 };
+      MC.Input.keys['KeyW'] = false;
+      MC.Input.keys['KeyS'] = false;
+      MC.Input.keys['KeyA'] = false;
+      MC.Input.keys['KeyD'] = false;
+    }
+
+    var isMouseDragging = false;
+    zone.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      isMouseDragging = true;
+      handleJoystickMove(e.clientX, e.clientY);
+    });
+    window.addEventListener('mousemove', function (e) {
+      if (isMouseDragging) {
+        e.preventDefault();
+        handleJoystickMove(e.clientX, e.clientY);
+      }
+    });
+    window.addEventListener('mouseup', function (e) {
+      if (isMouseDragging) {
+        isMouseDragging = false;
+        resetJoystick();
+      }
+    });
+
+    zone.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var t = e.changedTouches[0];
+      joystickTouchId = t.identifier;
+      handleJoystickMove(t.clientX, t.clientY);
+    }, { passive: false });
+
+    zone.addEventListener('touchmove', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      for (var i = 0; i < e.touches.length; i++) {
+        if (e.touches[i].identifier === joystickTouchId) {
+          handleJoystickMove(e.touches[i].clientX, e.touches[i].clientY);
+          break;
+        }
+      }
+    }, { passive: false });
+
+    zone.addEventListener('touchend', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joystickTouchId) {
+          resetJoystick();
+          break;
+        }
+      }
+    }, { passive: false });
+
+    zone.addEventListener('touchcancel', function (e) {
+      resetJoystick();
+    }, { passive: false });
+  }
+
+  // ---------------- Right Actions & Top Buttons ----------------
+  function bindActionButtons() {
+    // Jump button (Double-tap in creative mode toggles flying)
+    var jumpBtn = document.getElementById('btn-jump');
+    if (jumpBtn) {
+      function startJump(e) {
         e.preventDefault();
         e.stopPropagation();
-        if (isToggle) {
-          active = !active;
-          if (active) {
-            MC.Input.pressKey(actionCode);
-            btn.classList.add('active');
-          } else {
-            MC.Input.releaseKey(actionCode);
-            btn.classList.remove('active');
-          }
+        MC.Input.pressKey('jump');
+        jumpBtn.classList.add('active');
+      }
+      function endJump(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        MC.Input.releaseKey('jump');
+        jumpBtn.classList.remove('active');
+      }
+      jumpBtn.addEventListener('touchstart', startJump, { passive: false });
+      jumpBtn.addEventListener('touchend', endJump, { passive: false });
+      jumpBtn.addEventListener('touchcancel', endJump, { passive: false });
+      jumpBtn.addEventListener('mousedown', startJump);
+      jumpBtn.addEventListener('mouseup', endJump);
+    }
+
+    // Sprint toggle
+    var sprintBtn = document.getElementById('btn-sprint');
+    if (sprintBtn) {
+      function toggleSprint(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        sprintToggled = !sprintToggled;
+        if (sprintToggled) {
+          MC.Input.pressKey('sprint');
+          sprintBtn.classList.add('active');
         } else {
-          MC.Input.pressKey(actionCode);
-          btn.classList.add('active');
+          MC.Input.releaseKey('sprint');
+          sprintBtn.classList.remove('active');
         }
       }
+      sprintBtn.addEventListener('touchstart', toggleSprint, { passive: false });
+      sprintBtn.addEventListener('click', toggleSprint);
+    }
 
-      function onUp(e) {
+    // Sneak toggle
+    var sneakBtn = document.getElementById('btn-sneak');
+    if (sneakBtn) {
+      function toggleSneak(e) {
         e.preventDefault();
         e.stopPropagation();
-        if (!isToggle) {
-          MC.Input.releaseKey(actionCode);
-          btn.classList.remove('active');
+        sneakToggled = !sneakToggled;
+        if (sneakToggled) {
+          MC.Input.pressKey('sneak');
+          sneakBtn.classList.add('active');
+        } else {
+          MC.Input.releaseKey('sneak');
+          sneakBtn.classList.remove('active');
         }
       }
-
-      btn.addEventListener('touchstart', onDown, { passive: false });
-      btn.addEventListener('touchend', onUp, { passive: false });
-      btn.addEventListener('touchcancel', onUp, { passive: false });
-      btn.addEventListener('mousedown', onDown);
-      btn.addEventListener('mouseup', onUp);
+      sneakBtn.addEventListener('touchstart', toggleSneak, { passive: false });
+      sneakBtn.addEventListener('click', toggleSneak);
     }
 
-    // D-Pad unified touch drag + multi-directional support
-    var dpadContainer = overlay ? overlay.querySelector('.touch-dpad-container') : document.querySelector('.touch-dpad-container');
-    var dpadTouchId = null;
-    var dpadState = { forward: false, back: false, left: false, right: false, jump: false };
-
-    function updateDpadFromCoords(clientX, clientY) {
-      if (!dpadContainer) return;
-      var rect = dpadContainer.getBoundingClientRect();
-      var cx = rect.left + rect.width / 2;
-      var cy = rect.top + rect.height / 2;
-      var dx = clientX - cx;
-      var dy = clientY - cy;
-      var dist = Math.sqrt(dx * dx + dy * dy);
-
-      var next = { forward: false, back: false, left: false, right: false, jump: false };
-      if (dist < 18) {
-        next.jump = true;
-      } else {
-        if (dy < -14) next.forward = true;
-        if (dy > 14) next.back = true;
-        if (dx < -14) next.left = true;
-        if (dx > 14) next.right = true;
-      }
-
-      for (var action in next) {
-        if (next[action] && !dpadState[action]) {
-          MC.Input.pressKey(action);
-        } else if (!next[action] && dpadState[action]) {
-          MC.Input.releaseKey(action);
-        }
-        dpadState[action] = next[action];
-      }
-
-      var u = document.getElementById('dp-up');
-      var d = document.getElementById('dp-down');
-      var l = document.getElementById('dp-left');
-      var r = document.getElementById('dp-right');
-      var c = document.getElementById('dp-center');
-      if (u) u.classList.toggle('active', !!next.forward);
-      if (d) d.classList.toggle('active', !!next.back);
-      if (l) l.classList.toggle('active', !!next.left);
-      if (r) r.classList.toggle('active', !!next.right);
-      if (c) c.classList.toggle('active', !!next.jump);
-    }
-
-    function clearDpad() {
-      for (var action in dpadState) {
-        if (dpadState[action]) {
-          MC.Input.releaseKey(action);
-          dpadState[action] = false;
+    // Top Bar - Camera / Perspective (F5)
+    var camBtn = document.getElementById('tb-cam');
+    if (camBtn) {
+      function triggerCam(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.gameInstance) {
+          window.gameInstance.perspective = (window.gameInstance.perspective + 1) % 3;
         }
       }
-      var u = document.getElementById('dp-up');
-      var d = document.getElementById('dp-down');
-      var l = document.getElementById('dp-left');
-      var r = document.getElementById('dp-right');
-      var c = document.getElementById('dp-center');
-      if (u) u.classList.remove('active');
-      if (d) d.classList.remove('active');
-      if (l) l.classList.remove('active');
-      if (r) r.classList.remove('active');
-      if (c) c.classList.remove('active');
-      dpadTouchId = null;
+      camBtn.addEventListener('touchstart', triggerCam, { passive: false });
+      camBtn.addEventListener('click', triggerCam);
     }
 
-    if (dpadContainer) {
-      dpadContainer.addEventListener('touchstart', function (e) {
+    // Top Bar - Chat
+    var chatBtn = document.getElementById('tb-chat');
+    if (chatBtn) {
+      function triggerChat(e) {
         e.preventDefault();
         e.stopPropagation();
-        var t = e.changedTouches[0];
-        dpadTouchId = t.identifier;
-        updateDpadFromCoords(t.clientX, t.clientY);
-      }, { passive: false });
-
-      dpadContainer.addEventListener('touchmove', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        for (var i = 0; i < e.touches.length; i++) {
-          if (e.touches[i].identifier === dpadTouchId) {
-            updateDpadFromCoords(e.touches[i].clientX, e.touches[i].clientY);
-            break;
-          }
+        if (window.gameInstance && window.gameInstance.chat) {
+          window.gameInstance.chat.openChat('');
+          focusKb();
         }
-      }, { passive: false });
-
-      dpadContainer.addEventListener('touchend', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        for (var i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === dpadTouchId) {
-            clearDpad();
-            break;
-          }
-        }
-      }, { passive: false });
-
-      dpadContainer.addEventListener('touchcancel', function (e) {
-        clearDpad();
-      }, { passive: false });
+      }
+      chatBtn.addEventListener('touchstart', triggerChat, { passive: false });
+      chatBtn.addEventListener('click', triggerChat);
     }
 
-    // Individual button click fallback for mouse testing
-    bindKeyBtn('dp-up', 'forward');
-    bindKeyBtn('dp-down', 'back');
-    bindKeyBtn('dp-left', 'left');
-    bindKeyBtn('dp-right', 'right');
-    bindKeyBtn('dp-center', 'jump');
-
-    // Actions
-    bindKeyBtn('btn-jump', 'jump');
-    bindKeyBtn('btn-sneak', 'sneak', true);
-    bindKeyBtn('btn-sprint', 'sprint', true);
-
-    // Drop
-    var dropBtn = document.getElementById('btn-drop');
-    if (dropBtn) {
-      dropBtn.addEventListener('touchstart', function (e) {
-        e.preventDefault();
-        MC.Input.pressKey('drop');
-        setTimeout(function () { MC.Input.releaseKey('drop'); }, 100);
-      }, { passive: false });
-    }
-
-    // Mine (Left Click / Button 0)
-    var mineBtn = document.getElementById('btn-mine');
-    if (mineBtn) {
-      function startMine(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        MC.Input.mouse.buttons |= 1;
-        MC.Input.mouse.clicks.push({ button: 0, x: MC.Input.mouse.x, y: MC.Input.mouse.y, down: true });
-        mineBtn.classList.add('active');
-      }
-      function endMine(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        MC.Input.mouse.buttons &= ~1;
-        MC.Input.mouse.clicks.push({ button: 0, x: MC.Input.mouse.x, y: MC.Input.mouse.y, down: false });
-        mineBtn.classList.remove('active');
-      }
-      mineBtn.addEventListener('touchstart', startMine, { passive: false });
-      mineBtn.addEventListener('touchend', endMine, { passive: false });
-      mineBtn.addEventListener('touchcancel', endMine, { passive: false });
-      mineBtn.addEventListener('mousedown', startMine);
-      mineBtn.addEventListener('mouseup', endMine);
-    }
-
-    // Place / Use (Right Click / Button 2 = bit 4)
-    var placeBtn = document.getElementById('btn-place');
-    if (placeBtn) {
-      function startPlace(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        MC.Input.mouse.buttons |= 4;
-        MC.Input.mouse.clicks.push({ button: 2, x: MC.Input.mouse.x, y: MC.Input.mouse.y, down: true });
-        placeBtn.classList.add('active');
-      }
-      function endPlace(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        MC.Input.mouse.buttons &= ~4;
-        MC.Input.mouse.clicks.push({ button: 2, x: MC.Input.mouse.x, y: MC.Input.mouse.y, down: false });
-        placeBtn.classList.remove('active');
-      }
-      placeBtn.addEventListener('touchstart', startPlace, { passive: false });
-      placeBtn.addEventListener('touchend', endPlace, { passive: false });
-      placeBtn.addEventListener('touchcancel', endPlace, { passive: false });
-      placeBtn.addEventListener('mousedown', startPlace);
-      placeBtn.addEventListener('mouseup', endPlace);
-    }
-
-    // Top bar buttons
+    // Top Bar - Pause / Menu
     var pauseBtn = document.getElementById('tb-pause');
     if (pauseBtn) {
-      pauseBtn.addEventListener('touchstart', function (e) {
+      function triggerPause(e) {
         e.preventDefault();
+        e.stopPropagation();
         if (window.gameInstance) {
           if (window.gameInstance.screen) window.gameInstance.closeScreen();
           else window.gameInstance.openScreen(new MC.Screens.PauseScreen(window.gameInstance));
         }
-      }, { passive: false });
+      }
+      pauseBtn.addEventListener('touchstart', triggerPause, { passive: false });
+      pauseBtn.addEventListener('click', triggerPause);
     }
 
+    // Inventory Button (...)
     var invBtn = document.getElementById('tb-inv');
     if (invBtn) {
-      invBtn.addEventListener('touchstart', function (e) {
+      function triggerInv(e) {
         e.preventDefault();
+        e.stopPropagation();
         if (window.gameInstance && window.gameInstance.player) {
           var p = window.gameInstance.player;
           if (window.gameInstance.screen) window.gameInstance.closeScreen();
           else window.gameInstance.openScreen(p.isCreative() ? new MC.Inventory.Screens.CreativeScreen(window.gameInstance, window.gameInstance.lastCreativeTab || 2) : new MC.Inventory.Screens.InventoryScreen(window.gameInstance));
         }
-      }, { passive: false });
-    }
-
-    var chatBtn = document.getElementById('tb-chat');
-    if (chatBtn) {
-      chatBtn.addEventListener('touchstart', function (e) {
-        e.preventDefault();
-        if (window.gameInstance && window.gameInstance.chat) {
-          window.gameInstance.chat.openChat('');
-          focusKb();
-        }
-      }, { passive: false });
-    }
-
-    var f5Btn = document.getElementById('tb-f5');
-    if (f5Btn) {
-      f5Btn.addEventListener('touchstart', function (e) {
-        e.preventDefault();
-        if (window.gameInstance) {
-          window.gameInstance.perspective = (window.gameInstance.perspective + 1) % 3;
-        }
-      }, { passive: false });
+      }
+      invBtn.addEventListener('touchstart', triggerInv, { passive: false });
+      invBtn.addEventListener('click', triggerInv);
     }
   }
 
-  function bindTouchListeners() {
+  // ---------------- Tap Anywhere on Screen (Look, Tap to Place/Attack, Hold to Mine) ----------------
+  function bindScreenTouch() {
     var gameCanvas = document.getElementById('game') || document.body;
 
-    // Window touchstart for camera drag & hotbar taps & GUI clicks
     window.addEventListener('touchstart', function (e) {
       if (!enabled || !touchActive) return;
       var g = window.gameInstance;
@@ -389,15 +401,15 @@
         var t = e.changedTouches[i];
         var target = t.target;
 
-        // If touching overlay elements or buttons, ignore for camera look
-        if (target && target.closest && (target.closest('#touch-overlay button') || target.closest('.touch-dpad-container'))) {
+        // Skip if touching overlay buttons or joystick
+        if (target && target.closest && (target.closest('#touch-overlay button') || target.closest('.touch-joystick-zone'))) {
           continue;
         }
 
         var px = t.clientX;
         var py = t.clientY;
 
-        // If in GUI / menu or chat screen
+        // If in GUI / menu or chat screen -> forward to GUI clicks
         if (g && (g.screen || g.chat.open || g.state !== 'playing')) {
           e.preventDefault();
           var r = gameCanvas.getBoundingClientRect();
@@ -412,7 +424,7 @@
           continue;
         }
 
-        // Gameplay: check if tapping hotbar area at bottom center (dynamically scaled)
+        // Gameplay: check if tapping hotbar slots (bottom center)
         if (g && g.state === 'playing' && g.player && !g.screen) {
           var S = (MC.Gui && MC.Gui.S) || 2;
           var W = (MC.Gui && MC.Gui.W) || Math.ceil(window.innerWidth / S);
@@ -420,7 +432,8 @@
           var hx = (Math.floor(W / 2) - 91) * S;
           var hy = (H - 22) * S;
           var hw = 182 * S;
-          if (px >= hx - 12 && px <= hx + hw + 12 && py >= hy - 16) {
+
+          if (px >= hx - 10 && px <= hx + hw + 10 && py >= hy - 14) {
             var slot = Math.floor((px - hx) / (20 * S));
             if (slot >= 0 && slot < 9) {
               g.player.selected = slot;
@@ -431,11 +444,31 @@
           }
         }
 
-        // Camera Look touch binding (right side or non-button touch)
-        if (lookTouchId === null) {
-          lookTouchId = t.identifier;
-          lastLookX = t.clientX;
-          lastLookY = t.clientY;
+        // World touch: camera look / tap to interact / hold to mine
+        if (screenTouchId === null && g && g.state === 'playing' && g.player && g.world && g.camera) {
+          screenTouchId = t.identifier;
+          screenStartX = px;
+          screenStartY = py;
+          lastLookX = px;
+          lastLookY = py;
+          touchStartTime = performance.now();
+          hasMoved = false;
+
+          // Raycast from touch screen coordinates
+          var rayDir = getScreenRayDir(g.camera, px, py);
+          var eye = g.player.getEyePos(1);
+          var hit = g.world.raycast(eye, rayDir, g.player.reach, false);
+          var mob = MC.Mobs ? MC.Mobs.pick(eye, rayDir, hit ? hit.dist : 3.5) : null;
+
+          // If block hit without mob, prepare hold-to-mine timer (200ms)
+          if (hit && !mob) {
+            if (holdTimer) clearTimeout(holdTimer);
+            holdTimer = setTimeout(function () {
+              if (!hasMoved && screenTouchId !== null) {
+                startMining(hit);
+              }
+            }, 200);
+          }
         }
       }
     }, { passive: false });
@@ -458,14 +491,28 @@
           MC.Input.mouse.moved = true;
         }
 
-        // Camera look update
-        if (t.identifier === lookTouchId) {
+        // World touch move
+        if (t.identifier === screenTouchId) {
+          var distMoved = Math.hypot(t.clientX - screenStartX, t.clientY - screenStartY);
+          if (distMoved > 8) {
+            hasMoved = true;
+            if (holdTimer) {
+              clearTimeout(holdTimer);
+              holdTimer = null;
+            }
+            if (isMining) {
+              stopMining();
+            }
+          }
+
+          // Camera rotation
           var dx = t.clientX - lastLookX;
           var dy = t.clientY - lastLookY;
           lastLookX = t.clientX;
           lastLookY = t.clientY;
-          MC.Input.mouse.dx += dx * 1.8;
-          MC.Input.mouse.dy += dy * 1.8;
+
+          MC.Input.mouse.dx += dx * 1.6;
+          MC.Input.mouse.dy += dy * 1.6;
         }
       }
     }, { passive: false });
@@ -477,6 +524,7 @@
       for (var i = 0; i < e.changedTouches.length; i++) {
         var t = e.changedTouches[i];
 
+        // GUI mouse up
         if (g && (g.screen || g.chat.open || g.state !== 'playing')) {
           e.preventDefault();
           var r = gameCanvas.getBoundingClientRect();
@@ -486,14 +534,169 @@
           MC.Input.mouse.clicks.push({ button: 0, x: mx, y: my, down: false });
         }
 
-        if (t.identifier === lookTouchId) {
-          lookTouchId = null;
+        // World touch end
+        if (t.identifier === screenTouchId) {
+          if (holdTimer) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+          }
+
+          if (isMining) {
+            stopMining();
+          } else if (!hasMoved && g && g.state === 'playing' && g.player && g.world && g.camera) {
+            // TAP ACTION: Interact, Place block, Attack mob, or Eat
+            executeTap(t.clientX, t.clientY);
+          }
+
+          screenTouchId = null;
         }
       }
     }
 
     window.addEventListener('touchend', onTouchEnd, { passive: false });
     window.addEventListener('touchcancel', onTouchEnd, { passive: false });
+  }
+
+  function executeTap(clientX, clientY) {
+    var g = window.gameInstance;
+    if (!g || !g.player || !g.world || !g.camera) return;
+    var p = g.player;
+
+    var rayDir = getScreenRayDir(g.camera, clientX, clientY);
+    var eye = p.getEyePos(1);
+    var hit = g.world.raycast(eye, rayDir, p.reach, false);
+    var mob = MC.Mobs ? MC.Mobs.pick(eye, rayDir, hit ? hit.dist : 3.5) : null;
+    var held = p.held();
+
+    // 1. Attack Mob
+    if (mob) {
+      p.swingArm();
+      var dmg = 1;
+      if (held && MC.ITEMS[held.id] && MC.ITEMS[held.id].tool) dmg = MC.ITEMS[held.id].tool.damage;
+      else if (held && MC.ITEMS[held.id].block >= 0) dmg = 1;
+      var crit = p.fallDist > 0 && !p.onGround && !p.inWater;
+      if (crit) dmg *= 1.5;
+      mob.hurt(dmg, 'player', p.pos, p.sprinting ? 0.9 : 0.5);
+      MC.Audio.play(crit ? 'player.attack.sweep' : 'player.attack');
+      if (held && MC.ITEMS[held.id].tool) p.damageItem(p.selected, held.id === 'shears' ? 0 : 1);
+      p.addExhaustion(0.1);
+      return;
+    }
+
+    // 2. Interact with Block or Place Item
+    if (hit) {
+      // Eat food if holding food and hungry
+      if (held && MC.ITEMS[held.id] && MC.ITEMS[held.id].food && (p.hunger < 20 || p.isCreative())) {
+        p.eat(held);
+        if (!p.isCreative()) p.inventory.take(p.selected, 1);
+        MC.Audio.play('player.burp');
+        p.swingArm();
+        return;
+      }
+
+      // Interact with block (door, chest, furnace, crafting table, bed) or place block
+      p.useOnBlock(hit, held);
+      p.swingArm();
+      return;
+    }
+
+    // 3. Tap empty air -> Swing arm
+    p.swingArm();
+  }
+
+  function startMining(hit) {
+    var g = window.gameInstance;
+    if (!g || !g.player) return;
+    isMining = true;
+    miningTarget = hit;
+    miningProgress = 0;
+    miningSoundTimer = 0.2;
+    g.player.touchTarget = hit;
+  }
+
+  function stopMining() {
+    var g = window.gameInstance;
+    isMining = false;
+    miningTarget = null;
+    miningProgress = 0;
+    if (g && g.player) {
+      g.player.touchTarget = null;
+      g.player.mining.target = null;
+      g.player.mining.progress = 0;
+    }
+    if (g && g.breakMesh) {
+      g.breakMesh.visible = false;
+    }
+  }
+
+  function updateMining(dt) {
+    var g = window.gameInstance;
+    if (!isMining || !miningTarget || !g || !g.player || !g.world) return;
+    var p = g.player;
+
+    var currentId = g.world.getBlock(miningTarget.x, miningTarget.y, miningTarget.z);
+    if (currentId <= 0 || currentId !== miningTarget.id) {
+      stopMining();
+      return;
+    }
+
+    var B = MC.BLOCKS[miningTarget.id];
+    var held = p.held();
+
+    // Creative mode instant break
+    if (p.isCreative()) {
+      p.breakBlock(miningTarget, held);
+      stopMining();
+      return;
+    }
+
+    // Bedrock or unbreakable
+    if (B.hardness < 0) {
+      return;
+    }
+
+    var breakTime = p.breakTime(B, held);
+    miningProgress += dt / breakTime;
+    p.mining.progress = miningProgress;
+    p.mining.target = miningTarget;
+    p.touchTarget = miningTarget;
+
+    // Crack stage update
+    var stage = Math.min(9, Math.floor(miningProgress * 10));
+    if (g.breakMesh && g.breakGeos && g.breakGeos[stage]) {
+      g.breakMesh.geometry = g.breakGeos[stage];
+      g.breakMesh.visible = true;
+      g.breakMesh.position.set(miningTarget.x + 0.5, miningTarget.y + 0.5, miningTarget.z + 0.5);
+    }
+
+    // Hit sounds & particles every 0.25s
+    miningSoundTimer += dt;
+    if (miningSoundTimer >= 0.25) {
+      miningSoundTimer = 0;
+      MC.Audio.play('step.' + (B.sound === 'none' ? 'stone' : B.sound), { volume: 0.3, pitch: 0.5 });
+      MC.Particles.blockHit(miningTarget.x, miningTarget.y, miningTarget.z, miningTarget.face, miningTarget.id);
+      p.swingArm();
+    }
+
+    // Finished breaking
+    if (miningProgress >= 1) {
+      p.breakBlock(miningTarget, held);
+      miningProgress = 0;
+      p.mining.progress = 0;
+      p.mining.target = null;
+      if (g.breakMesh) g.breakMesh.visible = false;
+
+      // Continue mining next block along line of sight if still holding
+      var rayDir = getScreenRayDir(g.camera, lastLookX, lastLookY);
+      var eye = p.getEyePos(1);
+      var nextHit = g.world.raycast(eye, rayDir, p.reach, false);
+      if (nextHit) {
+        miningTarget = nextHit;
+        p.touchTarget = nextHit;
+      } else {
+        stopMining();
+      }
+    }
   }
 
   function updateVisibility() {
@@ -503,9 +706,28 @@
     overlay.style.display = shouldShow ? 'block' : 'none';
   }
 
-  // Update check every frame or state change
-  function update() {
+  // Update check every frame
+  function update(dt) {
     updateVisibility();
+
+    // Position "..." inventory button right next to the hotbar
+    var invBtn = document.getElementById('tb-inv');
+    var g = window.gameInstance;
+    if (invBtn && g && g.state === 'playing' && !g.screen) {
+      var S = (MC.Gui && MC.Gui.S) || 2;
+      var W = (MC.Gui && MC.Gui.W) || Math.ceil(window.innerWidth / S);
+      var H = (MC.Gui && MC.Gui.H) || Math.ceil(window.innerHeight / S);
+      var hotbarRight = (Math.floor(W / 2) + 91) * S;
+      var btnSize = 22 * S;
+      invBtn.style.left = (hotbarRight + 4) + 'px';
+      invBtn.style.bottom = '0px';
+      invBtn.style.width = (btnSize + 2) + 'px';
+      invBtn.style.height = btnSize + 'px';
+    }
+
+    if (dt && isMining) {
+      updateMining(dt);
+    }
   }
 
   // Export
