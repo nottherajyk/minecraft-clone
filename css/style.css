@@ -53,34 +53,36 @@ canvas {
 
 /* Touch Controls - Modern Bedrock Edition Layout */
 .touch-btn {
-  background: rgba(0, 0, 0, 0.35);
-  border: 2px solid rgba(255, 255, 255, 0.45);
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.42);
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.3), inset -1px -1px 0 rgba(0, 0, 0, 0.6), 0 3px 8px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   color: #ffffff;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  font-weight: bold;
-  border-radius: 12px;
+  border-radius: 8px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
   cursor: pointer;
   outline: none;
   transition: background 0.1s ease, transform 0.08s ease, border-color 0.1s ease;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+  padding: 0;
+}
+
+.touch-icon {
+  display: block;
+  pointer-events: none;
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.85));
 }
 
 .touch-btn:active, .touch-btn.active {
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.38);
   border-color: #80ff20;
   transform: scale(0.93);
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6), 0 0 12px rgba(128, 255, 32, 0.6);
-  color: #000;
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.8), 0 0 10px rgba(128, 255, 32, 0.5);
 }
 
 /* Top Center Bar */
@@ -90,7 +92,7 @@ canvas {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 12px;
+  gap: 10px;
   pointer-events: auto;
   z-index: 10001;
 }
@@ -98,8 +100,7 @@ canvas {
 .touch-btn-sq {
   width: 44px;
   height: 44px;
-  font-size: 20px;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 /* Bottom Left Joystick */
@@ -107,8 +108,8 @@ canvas {
   position: absolute;
   bottom: 24px;
   left: 24px;
-  width: 136px;
-  height: 136px;
+  width: 124px;
+  height: 124px;
   pointer-events: auto;
   touch-action: none;
   user-select: none;
@@ -120,116 +121,118 @@ canvas {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 28px;
-  background: rgba(0, 0, 0, 0.28);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.36);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.15), inset -1px -1px 0 rgba(0, 0, 0, 0.6), 0 4px 10px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 .touch-joystick-knob {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.85), rgba(200, 200, 200, 0.45));
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: rgba(50, 55, 50, 0.7);
+  border: 2px solid rgba(0, 0, 0, 0.65);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35), inset -1px -1px 0 rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.5);
   position: absolute;
-  left: calc(50% - 26px);
-  top: calc(50% - 26px);
+  left: calc(50% - 24px);
+  top: calc(50% - 24px);
   pointer-events: none;
   transition: transform 0.03s linear;
-}
-
-.touch-joystick-knob::after {
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  top: calc(50% - 7px);
-  left: calc(50% - 7px);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
 }
 
 /* Bottom Center Inventory Button (...) */
 .touch-btn-dots {
   position: absolute;
   z-index: 10001;
-  letter-spacing: -1px;
-  font-size: 22px;
-  font-weight: 900;
-  border-radius: 8px;
+  border-radius: 6px;
   pointer-events: auto;
-  line-height: 1;
 }
 
 /* Right Side Action Cluster */
 .touch-action-cluster {
   position: absolute;
-  bottom: 24px;
-  right: 24px;
-  width: 136px;
-  height: 136px;
+  bottom: 20px;
+  right: 20px;
+  width: 116px;
+  height: 168px;
   pointer-events: auto;
   z-index: 10001;
 }
 
 .touch-btn-action {
   position: absolute;
-  width: 52px;
-  height: 52px;
-  font-size: 24px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
 }
 
+/* Right column */
 .touch-jump {
   top: 0;
-  right: 4px;
+  right: 0;
 }
 
 .touch-sneak {
-  bottom: 0;
-  right: 4px;
+  top: 56px;
+  right: 0;
 }
 
+.touch-interact {
+  top: 112px;
+  right: 0;
+}
+
+/* Left column */
 .touch-sprint {
-  top: 42px;
-  left: 4px;
+  top: 40px;
+  left: 0;
+}
+
+.touch-attack {
+  top: 112px;
+  left: 0;
 }
 
 @media (max-height: 500px) {
   .touch-joystick-zone {
-    width: 114px !important;
-    height: 114px !important;
-    bottom: 12px !important;
-    left: 12px !important;
+    width: 108px !important;
+    height: 108px !important;
+    bottom: 10px !important;
+    left: 10px !important;
   }
   .touch-joystick-knob {
-    width: 44px !important;
-    height: 44px !important;
-    left: calc(50% - 22px) !important;
-    top: calc(50% - 22px) !important;
+    width: 42px !important;
+    height: 42px !important;
+    left: calc(50% - 21px) !important;
+    top: calc(50% - 21px) !important;
   }
   .touch-action-cluster {
-    width: 114px !important;
-    height: 114px !important;
-    bottom: 12px !important;
-    right: 12px !important;
+    width: 102px !important;
+    height: 148px !important;
+    bottom: 10px !important;
+    right: 10px !important;
   }
   .touch-btn-action {
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 20px !important;
+    width: 42px !important;
+    height: 42px !important;
+  }
+  .touch-sneak {
+    top: 48px !important;
+  }
+  .touch-interact {
+    top: 96px !important;
   }
   .touch-sprint {
-    top: 35px !important;
+    top: 36px !important;
+  }
+  .touch-attack {
+    top: 96px !important;
   }
   .touch-btn-sq {
     width: 38px !important;
     height: 38px !important;
-    font-size: 17px !important;
   }
 }

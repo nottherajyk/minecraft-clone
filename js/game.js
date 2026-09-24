@@ -73,7 +73,7 @@
   };
   Game.prototype.closeScreen = function () {
     if (this.screen) this.screen.onClose(); this.screen = null;
-    if (this.state === 'playing') { MC.Input.lock(); this.crosshair.style.display = MC.Input.touchActive ? 'none' : (MC.Hud.hidden ? 'none' : 'block'); }
+    if (this.state === 'playing') { MC.Input.lock(); this.crosshair.style.display = MC.Hud.hidden ? 'none' : 'block'; }
     if (MC.TouchControls) MC.TouchControls.update();
   };
   Game.prototype.drawScreenBackground = function () { if (this.state === 'playing') MC.Gui.drawDim(); else MC.Gui.drawBackground(); };
@@ -517,7 +517,7 @@
     MC.Hud.render(this);
     this.chat.render();
     if (this.screen) this.screen.render();
-    this.crosshair.style.display = (MC.Input.touchActive || this.screen || MC.Hud.hidden || this.chat.open) ? 'none' : 'block';
+    this.crosshair.style.display = (this.screen || MC.Hud.hidden || this.chat.open) ? 'none' : 'block';
   };
 
   MC.Game = Game;

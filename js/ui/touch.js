@@ -16,7 +16,7 @@
   var joystickBase = null;
   var joystickKnob = null;
   var joystickCenter = { x: 0, y: 0 };
-  var joystickMaxRadius = 42;
+  var joystickMaxRadius = 36;
 
   // Screen interaction state (look, tap, mine)
   var screenTouchId = null;
@@ -106,11 +106,29 @@
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;user-select:none;-webkit-user-select:none;display:none;';
 
     overlay.innerHTML = `
-      <!-- Top Center Bar: Emote/Camera, Chat, Pause Menu -->
+      <!-- Top Center Bar: Perspective / Emote, Chat, Pause Menu -->
       <div class="touch-topbar-center">
-        <button id="tb-cam" class="touch-btn touch-btn-sq" title="Perspective (F5)">👤</button>
-        <button id="tb-chat" class="touch-btn touch-btn-sq" title="Chat">💬</button>
-        <button id="tb-pause" class="touch-btn touch-btn-sq" title="Menu / Pause">⏸️</button>
+        <button id="tb-cam" class="touch-btn touch-btn-sq" title="Perspective (F5)">
+          <svg class="touch-icon" viewBox="0 0 24 24" width="22" height="22">
+            <rect x="8" y="2" width="8" height="8" rx="1" fill="#ffffff"/>
+            <rect x="7" y="11" width="10" height="7" rx="1" fill="#ffffff"/>
+            <rect x="7" y="19" width="4.5" height="4" rx="0.5" fill="#ffffff"/>
+            <rect x="12.5" y="19" width="4.5" height="4" rx="0.5" fill="#ffffff"/>
+            <rect x="4" y="11" width="2.5" height="7" rx="0.5" fill="#ffffff"/>
+            <rect x="17.5" y="11" width="2.5" height="7" rx="0.5" fill="#ffffff"/>
+          </svg>
+        </button>
+        <button id="tb-chat" class="touch-btn touch-btn-sq" title="Chat">
+          <svg class="touch-icon" viewBox="0 0 24 24" width="22" height="22">
+            <path fill="#ffffff" d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H8l-5 4v-4H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm3 4v2h12V8H6zm0 4v2h8v-2H6z"/>
+          </svg>
+        </button>
+        <button id="tb-pause" class="touch-btn touch-btn-sq" title="Menu / Pause">
+          <svg class="touch-icon" viewBox="0 0 24 24" width="22" height="22">
+            <rect x="6" y="4" width="4" height="16" rx="1" fill="#ffffff"/>
+            <rect x="14" y="4" width="4" height="16" rx="1" fill="#ffffff"/>
+          </svg>
+        </button>
       </div>
 
       <!-- Bottom-Left Virtual Joystick (Move) -->
@@ -121,13 +139,60 @@
       </div>
 
       <!-- Bottom-Center Inventory button attached to hotbar -->
-      <button id="tb-inv" class="touch-btn touch-btn-dots" title="Open Inventory / Craft">•••</button>
+      <button id="tb-inv" class="touch-btn touch-btn-dots" title="Open Inventory / Craft">
+        <svg class="touch-icon" viewBox="0 0 24 24" width="20" height="20">
+          <circle cx="5" cy="12" r="2.5" fill="#ffffff"/>
+          <circle cx="12" cy="12" r="2.5" fill="#ffffff"/>
+          <circle cx="19" cy="12" r="2.5" fill="#ffffff"/>
+        </svg>
+      </button>
 
-      <!-- Right Side Action Cluster: Jump, Sprint, Sneak -->
+      <!-- Right Side Action Cluster: Jump, Sneak, Interact (Hand), Sprint, Attack (Sword) -->
       <div class="touch-action-cluster">
-        <button id="btn-jump" class="touch-btn touch-btn-action touch-jump" title="Jump">▲</button>
-        <button id="btn-sprint" class="touch-btn touch-btn-action touch-sprint" title="Sprint">⏩</button>
-        <button id="btn-sneak" class="touch-btn touch-btn-action touch-sneak" title="Sneak">▼</button>
+        <button id="btn-jump" class="touch-btn touch-btn-action touch-jump" title="Jump / Fly">
+          <svg class="touch-icon" viewBox="0 0 24 24" width="26" height="26">
+            <polygon points="12,2 4,11 9,11 9,16 15,16 15,11 20,11" fill="#ffffff"/>
+            <rect x="4" y="18" width="16" height="3" rx="1" fill="#ffffff"/>
+          </svg>
+        </button>
+        <button id="btn-sneak" class="touch-btn touch-btn-action touch-sneak" title="Sneak">
+          <svg class="touch-icon" viewBox="0 0 24 24" width="26" height="26">
+            <rect x="4" y="3" width="16" height="3" rx="1" fill="#ffffff"/>
+            <polygon points="12,22 4,13 9,13 9,8 15,8 15,13 20,13" fill="#ffffff"/>
+          </svg>
+        </button>
+        <button id="btn-interact" class="touch-btn touch-btn-action touch-interact" title="Use / Place / Interact">
+          <svg class="touch-icon" viewBox="0 0 24 24" width="26" height="26">
+            <path fill="#ffffff" d="M10 2a1.5 1.5 0 0 0-1.5 1.5V11l-1.4-1.4a1.5 1.5 0 0 0-2.1 2.1l4.5 4.5c.9.9 2.1 1.4 3.4 1.4h4.1a3.5 3.5 0 0 0 3.5-3.5V9.5a1.5 1.5 0 0 0-3 0V11h-1V5.5a1.5 1.5 0 0 0-3 0V11h-1V3.5A1.5 1.5 0 0 0 10 2z"/>
+          </svg>
+        </button>
+        <button id="btn-sprint" class="touch-btn touch-btn-action touch-sprint" title="Sprint">
+          <svg class="touch-icon" viewBox="0 0 24 24" width="26" height="26">
+            <polygon points="3,4 10,12 3,20 6,20 13,12 6,4" fill="#ffffff"/>
+            <polygon points="11,4 18,12 11,20 14,20 21,12 14,4" fill="#ffffff"/>
+          </svg>
+        </button>
+        <button id="btn-attack" class="touch-btn touch-btn-action touch-attack" title="Attack / Mine">
+          <svg class="touch-icon" viewBox="0 0 16 16" width="26" height="26" shape-rendering="crispEdges">
+            <rect x="13" y="1" width="2" height="2" fill="#ffffff"/>
+            <rect x="11" y="3" width="2" height="2" fill="#ffffff"/>
+            <rect x="9" y="5" width="2" height="2" fill="#ffffff"/>
+            <rect x="7" y="7" width="2" height="2" fill="#ffffff"/>
+            <rect x="12" y="2" width="2" height="2" fill="#ffffff"/>
+            <rect x="10" y="4" width="2" height="2" fill="#ffffff"/>
+            <rect x="8" y="6" width="2" height="2" fill="#ffffff"/>
+            <rect x="5" y="7" width="2" height="2" fill="#ffffff"/>
+            <rect x="4" y="8" width="2" height="2" fill="#ffffff"/>
+            <rect x="7" y="9" width="2" height="2" fill="#ffffff"/>
+            <rect x="8" y="10" width="2" height="2" fill="#ffffff"/>
+            <rect x="6" y="8" width="2" height="2" fill="#ffffff"/>
+            <rect x="4" y="10" width="2" height="2" fill="#ffffff"/>
+            <rect x="3" y="11" width="2" height="2" fill="#ffffff"/>
+            <rect x="1" y="13" width="2" height="2" fill="#ffffff"/>
+            <rect x="2" y="14" width="2" height="2" fill="#ffffff"/>
+            <rect x="1" y="14" width="2" height="2" fill="#ffffff"/>
+          </svg>
+        </button>
       </div>
     `;
 
@@ -387,6 +452,91 @@
       invBtn.addEventListener('touchstart', triggerInv, { passive: false });
       invBtn.addEventListener('click', triggerInv);
     }
+
+    // Attack / Mine Button (Sword)
+    var attackBtn = document.getElementById('btn-attack');
+    if (attackBtn) {
+      function startAttack(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        attackBtn.classList.add('active');
+        var g = window.gameInstance;
+        if (!g || !g.player) return;
+        var p = g.player;
+
+        if (p.targetMob) {
+          attackMob(p.targetMob);
+          return;
+        }
+
+        if (p.target) {
+          if (p.isCreative()) {
+            p.breakBlock(p.target, p.held());
+            p.swingArm();
+          } else {
+            startMining(p.target);
+          }
+          return;
+        }
+
+        p.swingArm();
+      }
+
+      function endAttack(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        attackBtn.classList.remove('active');
+        if (isMining) {
+          stopMining();
+        }
+      }
+
+      attackBtn.addEventListener('touchstart', startAttack, { passive: false });
+      attackBtn.addEventListener('touchend', endAttack, { passive: false });
+      attackBtn.addEventListener('touchcancel', endAttack, { passive: false });
+      attackBtn.addEventListener('mousedown', startAttack);
+      attackBtn.addEventListener('mouseup', endAttack);
+    }
+
+    // Interact / Use / Place Button (Hand)
+    var interactBtn = document.getElementById('btn-interact');
+    if (interactBtn) {
+      function triggerInteract(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        interactBtn.classList.add('active');
+        setTimeout(function () { interactBtn.classList.remove('active'); }, 120);
+
+        var g = window.gameInstance;
+        if (!g || !g.player) return;
+        var p = g.player;
+        var held = p.held();
+
+        if (p.targetMob && MC.Mobs && MC.Mobs.interact(p.targetMob, p, held)) {
+          p.swingArm();
+          return;
+        }
+
+        if (held && MC.ITEMS[held.id] && MC.ITEMS[held.id].food && (p.hunger < 20 || p.isCreative())) {
+          p.eat(held);
+          if (!p.isCreative()) p.inventory.take(p.selected, 1);
+          MC.Audio.play('player.burp');
+          p.swingArm();
+          return;
+        }
+
+        if (p.target) {
+          p.useOnBlock(p.target, held);
+          p.swingArm();
+          return;
+        }
+
+        p.swingArm();
+      }
+
+      interactBtn.addEventListener('touchstart', triggerInteract, { passive: false });
+      interactBtn.addEventListener('click', triggerInteract);
+    }
   }
 
   // ---------------- Tap Anywhere on Screen (Look, Tap to Place/Attack, Hold to Mine) ----------------
@@ -557,6 +707,23 @@
     window.addEventListener('touchcancel', onTouchEnd, { passive: false });
   }
 
+  function attackMob(mob) {
+    var g = window.gameInstance;
+    if (!g || !g.player) return;
+    var p = g.player;
+    var held = p.held();
+    p.swingArm();
+    var dmg = 1;
+    if (held && MC.ITEMS[held.id] && MC.ITEMS[held.id].tool) dmg = MC.ITEMS[held.id].tool.damage;
+    else if (held && MC.ITEMS[held.id].block >= 0) dmg = 1;
+    var crit = p.fallDist > 0 && !p.onGround && !p.inWater;
+    if (crit) dmg *= 1.5;
+    mob.hurt(dmg, 'player', p.pos, p.sprinting ? 0.9 : 0.5);
+    MC.Audio.play(crit ? 'player.attack.sweep' : 'player.attack');
+    if (held && MC.ITEMS[held.id].tool) p.damageItem(p.selected, held.id === 'shears' ? 0 : 1);
+    p.addExhaustion(0.1);
+  }
+
   function executeTap(clientX, clientY) {
     var g = window.gameInstance;
     if (!g || !g.player || !g.world || !g.camera) return;
@@ -570,16 +737,7 @@
 
     // 1. Attack Mob
     if (mob) {
-      p.swingArm();
-      var dmg = 1;
-      if (held && MC.ITEMS[held.id] && MC.ITEMS[held.id].tool) dmg = MC.ITEMS[held.id].tool.damage;
-      else if (held && MC.ITEMS[held.id].block >= 0) dmg = 1;
-      var crit = p.fallDist > 0 && !p.onGround && !p.inWater;
-      if (crit) dmg *= 1.5;
-      mob.hurt(dmg, 'player', p.pos, p.sprinting ? 0.9 : 0.5);
-      MC.Audio.play(crit ? 'player.attack.sweep' : 'player.attack');
-      if (held && MC.ITEMS[held.id].tool) p.damageItem(p.selected, held.id === 'shears' ? 0 : 1);
-      p.addExhaustion(0.1);
+      attackMob(mob);
       return;
     }
 

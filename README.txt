@@ -29,18 +29,19 @@ Pause .................................. Esc
 TOUCH & MOBILE CONTROLS (Minecraft Bedrock Edition Layout)
 ---------------------------------------------------------
 
-Move ..................................... Virtual analog joystick (bottom-left)
+Move ..................................... Virtual square joystick (bottom-left)
 Look Around .............................. Drag anywhere on screen
-Attack ................................... Tap mob directly on screen
-Place / Use / Interact ................... Tap block directly on screen (doors, chests, beds, etc.)
-Mine ..................................... Tap & hold block on screen (progressive crack animation)
-Jump / Fly ............................... Jump button (▲, double-tap in creative to toggle flight)
-Sprint / Sneak ........................... Toggle buttons (⏩ / ▼) on right
+Attack / Mine ............................ Sword button or tap/hold directly on screen
+Place / Use / Interact ................... Hand button or tap block directly on screen
+Jump / Fly ............................... Jump button (double-tap in creative to toggle flight)
+Sneak .................................... Sneak toggle button (below jump)
+Sprint ................................... Sprint toggle button (double arrow)
 Hotbar Selection ......................... Tap any hotbar slot at bottom
-Open Inventory / Crafting ................ "•••" button attached to the right of hotbar
-Perspective / Camera ..................... Top-center 👤 button (toggles 1st/3rd person)
-Chat / Commands .......................... Top-center 💬 button (opens virtual keyboard)
-Pause / Menu ............................. Top-center ⏸️ button
+Open Inventory / Crafting ................ "..." button attached to the right of hotbar
+Perspective / Camera ..................... Top-center player silhouette button
+Chat / Commands .......................... Top-center speech bubble button
+Pause / Menu ............................. Top-center pause bars button
+Crosshair ................................ Centered aiming reticle (+)
 
 
 WHAT IS IN THE GAME
